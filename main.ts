@@ -26,7 +26,7 @@
 //     at this case's hour-1 print (clamped to just outside the pool's range
 //     so a record-breaking GTA VI hour 1 cannot extrapolate wildly).
 //   - Spread: the residual standard deviation of that regression, per hour,
-//     with Student-t (5 df) quantiles instead of normal ones. Launch shapes
+//     with Student-t (10 df) quantiles instead of normal ones. Launch shapes
 //     are heavy-tailed (one small launch peaked 9x its hour 1); the t tails
 //     buy honest 90% coverage without widening the middle, where most of the
 //     pinball mass sits.
@@ -57,7 +57,8 @@ const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 /** Quantile levels the contest scores, in the order each row lists them. */
 const LEVELS = [0.05, 0.25, 0.5, 0.75, 0.95];
 /** Degrees of freedom of the Student-t used for the forecast quantiles. */
-const T_DF = 5;
+const T_DF = 10;
+const SD_SCALE = 0.9;
 /** A comparable joins the pool only when its hour 1 is at least this share of its day peak. */
 const MIN_V1_OVER_PEAK = 0.15;
 /** Floor on the pool size; if the filter leaves too few, it is relaxed. */
@@ -153,7 +154,7 @@ const hourQuantiles = (pool: number[][], p1: number, h: number): number[] => {
     const fit = my + slope * (xs[i] - mx);
     ss += (rs[i] - fit) * (rs[i] - fit);
   }
-  const sd = Math.max(Math.sqrt(ss / Math.max(n - 2, 1)), 0.05);
+  const sd = Math.max(Math.sqrt(ss / Math.max(n - 2, 1)), 0.05) * SD_SCALE;
   const qs = LEVELS.map((tau) => p1 * Math.exp(mu + tQuantile(tau, T_DF) * sd));
   // Guardrails: finite, above 0, at most 1e9, non-decreasing, 2 decimals.
   const out: number[] = [];
